@@ -1,125 +1,133 @@
 package com.aed;
 
-import com.badlogic.gdx.ApplicationAdapter;
+import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.g2d.Sprite;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.input.GestureDetector;
-import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.Scaling;
+import com.badlogic.gdx.utils.TimeUtils;
+import com.badlogic.gdx.utils.viewport.ScalingViewport;
 
-import java.util.ArrayList;
+public class AED implements ApplicationListener {
+    private Color[] colors = new Color[]{Color.WHITE, Color.YELLOW, Color.BLUE, Color.GREEN, Color.PINK};
 
-public class AED extends ApplicationAdapter implements GestureDetector.GestureListener{
+    private CustomShapeRenderer renderer;
+    private Array<Box> levelBoxes = new Array<Box>();
+    private Array<Box> candidateBoxes = new Array<Box>();
+    private Stage stage;
 
-	private float delta;
-	private SpriteBatch batch;
-	private Sprite mapSprite;
+    private int currentLevel = 0;
 
-	ArrayList<Tile> tiles;
-	int numTiles = 6;
-	float stateTime = 0;
-	int numRepsinSet;
-	int correctResponse[];
-	int userResponse[];
-	int currentSet = 0;
-	float timeTaken[];
+    private long lastScreen = 0;
 
-	private GestureDetector gd;
+    @Override
+    public void create() {
+        stage = new Stage(new ScalingViewport(Scaling.fillX, 480, 800));
+        renderer = new CustomShapeRenderer();
 
-	ProgressBar bar;
-	Skin skin;
-	Image test;
+        Gdx.input.setInputProcessor(stage);
+    }
 
-	@Override
-	public void create () {
-		//skin = new Skin(Gdx.files.internal("neon-ui.json"));
-		//bar = new ProgressBar(0f, 100f, 1f, false, skin);
-		//bar.setBounds(0, screenHeight - 100, screenWidth, 100);
-		//bar.setValue(50);
-		batch = new SpriteBatch();
-		correctResponse = new int[15];
-		correctResponse[currentSet] = Tile.init(numTiles, 1);
-		gd = new GestureDetector(this);
-		Gdx.input.setInputProcessor(gd);
-		userResponse = new int[15];
+    public Array<Box> generateBoxes(int numBoxes, Color[] colors) {
+        Array<Box> generatedBoxes = new Array<Box>();
 
-		//a = new Animation(1 / 30f, new Array<Integer>());
-		//cam = new OrthographicCamera(x, y);
-		//cam.position.set(cam.viewportWidth / 2f, cam.viewportHeight / 2f, 0);
-		//cam.update();
-	}
+        Array<Box> allBoxes = new Array<Box>(levelBoxes);
+        allBoxes.addAll(candidateBoxes);
 
-	@Override
-	public void render () {
-		Gdx.gl.glClearColor(1, 1, 1, 1);
-		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-		delta = Gdx.graphics.getDeltaTime();
-		batch.begin();
-		Tile.drawAll(batch, delta);
-		//bar.draw(batch, 1);
-		//stateTime += Gdx.graphics.getDeltaTime();
-		//System.out.println(a.getKeyFrame(stateTime));
-		batch.end();
-	}
-	
-	@Override
-	public void dispose () {
-		batch.dispose();
-	}
+        int candidateX = 0, candidateY = 0;
+        for (int i = 0; i < numBoxes; i++) {
+            boolean unique = false;
+            while (!unique) {
+                candidateX = MathUtils.random(0, 480 - Box.SHAPE_WIDTH);
+                candidateY = MathUtils.random(0, 800 - Box.SHAPE_HEIGHT);
 
-	@Override
-	public boolean touchDown(float x, float y, int pointer, int button) {
-		return false;
-	}
+                Rectangle candidateRectangle = new Rectangle(candidateX, candidateY, Box.SHAPE_WIDTH + 20f, Box.SHAPE_HEIGHT + 20f);
 
-	@Override
-	public boolean tap(float x, float y, int count, int button) {
-		userResponse[currentSet] = Tile.verify(x,Gdx.graphics.getHeight() - y);
-		if(userResponse[currentSet] != -1){
-			/*correctResponse[++currentSet] = Tile.init(9, 1);
-			if((numTiles = numTiles + 3) == 21){
-				numTiles = 6;
-			}*/
-		}
-		return false;
-	}
+                unique = true;
+                for (Box box : allBoxes) {
+                    if (candidateRectangle.overlaps(new Rectangle(box.getX(), box.getY(), box.getWidth(), box.getHeight()))) {
+                        unique = false;
+                        break;
+                    }
+                }
+            }
 
-	@Override
-	public boolean longPress(float x, float y) {
-		return false;
-	}
+            Box box = new Box(renderer, colors == null ? Color.RED : colors[i % colors.length], candidateX, candidateY);
 
-	@Override
-	public boolean fling(float velocityX, float velocityY, int button) {
-		return false;
-	}
+            generatedBoxes.add(box);
+            allBoxes.add(box);
+        }
+        return generatedBoxes;
+    }
 
-	@Override
-	public boolean pan(float x, float y, float deltaX, float deltaY) {
-		return false;
-	}
+    @Override
+    public void resize(int width, int height) {
 
-	@Override
-	public boolean panStop(float x, float y, int pointer, int button) {
-		return false;
-	}
+    }
 
-	@Override
-	public boolean zoom(float initialDistance, float distance) {
-		return false;
-	}
+    @Override
+    public void render() {
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-	@Override
-	public boolean pinch(Vector2 initialPointer1, Vector2 initialPointer2, Vector2 pointer1, Vector2 pointer2) {
-		return false;
-	}
+        renderer.setProjectionMatrix(stage.getBatch().getProjectionMatrix());
+        renderer.setTransformMatrix(stage.getBatch().getTransformMatrix());
 
-	@Override
-	public void pinchStop() {
+        if (TimeUtils.millis() - lastScreen >= (currentLevel == 0 ? 5000 : 3000)) {
+            for (Box box : candidateBoxes) {
+                box.addAction(Actions.sequence(Actions.fadeOut(0.5f), Actions.removeActor()));
+            }
+            candidateBoxes.clear();
 
-	}
+            if (currentLevel > 0) {
+                for (Box box : levelBoxes) {
+                    if (box == levelBoxes.get(currentLevel - 1)) {
+                        box.addAction(Actions.parallel(Actions.visible(true), Actions.alpha(0), Actions.sequence(Actions.delay(0.5f), Actions.fadeIn(0.5f))));
+                    } else {
+                        box.addAction(Actions.sequence(Actions.fadeOut(0.5f), Actions.visible(false)));
+                    }
+                }
+
+                candidateBoxes.addAll(generateBoxes(5, colors));
+                for (Box candidateBox : candidateBoxes) {
+                    stage.addActor(candidateBox);
+                    candidateBox.addAction(Actions.sequence(Actions.alpha(0), Actions.delay(0.5f), Actions.fadeIn(0.5f)));
+                }
+            } else {
+                for (Box box : levelBoxes) box.remove();
+                levelBoxes.clear();
+
+                levelBoxes.addAll(generateBoxes(5, null));
+                for (Box box : levelBoxes) {
+                    stage.addActor(box);
+                    box.addAction(Actions.sequence(Actions.alpha(0), Actions.delay(0.5f), Actions.fadeIn(0.5f)));
+                }
+            }
+            currentLevel = (currentLevel + 1) % (levelBoxes.size + 1);
+            lastScreen = TimeUtils.millis();
+        }
+
+        stage.act(Gdx.graphics.getDeltaTime());
+        stage.draw();
+    }
+
+    @Override
+    public void pause() {
+
+    }
+
+    @Override
+    public void resume() {
+
+    }
+
+    @Override
+    public void dispose() {
+        stage.dispose();
+        renderer.dispose();
+    }
 }
