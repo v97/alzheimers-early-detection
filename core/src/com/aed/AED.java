@@ -22,6 +22,7 @@ public class AED implements ApplicationListener {
     private Stage stage;
 
     private int currentLevel = 0;
+    private int currentSet = 1;
 
     private long lastScreen = 0;
 
@@ -76,41 +77,45 @@ public class AED implements ApplicationListener {
 
         renderer.setProjectionMatrix(stage.getBatch().getProjectionMatrix());
         renderer.setTransformMatrix(stage.getBatch().getTransformMatrix());
+        if(currentSet <= 3) {
+            if (TimeUtils.millis() - lastScreen >= (currentLevel == 0 ? 5000 : 3000)) {
+                for (Box box : candidateBoxes) {
+                    box.addAction(Actions.sequence(Actions.fadeOut(0.5f), Actions.removeActor()));
+                }
+                candidateBoxes.clear();
 
-        if (TimeUtils.millis() - lastScreen >= (currentLevel == 0 ? 5000 : 3000)) {
-            for (Box box : candidateBoxes) {
-                box.addAction(Actions.sequence(Actions.fadeOut(0.5f), Actions.removeActor()));
-            }
-            candidateBoxes.clear();
+                if (currentLevel > 0) {
+                    for (Box box : levelBoxes) {
+                        if (box == levelBoxes.get(currentLevel - 1)) {
+                            box.addAction(Actions.parallel(Actions.visible(true), Actions.alpha(0), Actions.sequence(Actions.delay(0.5f), Actions.fadeIn(0.5f))));
+                        } else {
+                            box.addAction(Actions.sequence(Actions.fadeOut(0.5f), Actions.visible(false)));
+                        }
+                    }
 
-            if (currentLevel > 0) {
-                for (Box box : levelBoxes) {
-                    if (box == levelBoxes.get(currentLevel - 1)) {
-                        box.addAction(Actions.parallel(Actions.visible(true), Actions.alpha(0), Actions.sequence(Actions.delay(0.5f), Actions.fadeIn(0.5f))));
-                    } else {
-                        box.addAction(Actions.sequence(Actions.fadeOut(0.5f), Actions.visible(false)));
+                    candidateBoxes.addAll(generateBoxes(5, colors));
+                    for (Box candidateBox : candidateBoxes) {
+                        stage.addActor(candidateBox);
+                        candidateBox.addAction(Actions.sequence(Actions.alpha(0), Actions.delay(0.5f), Actions.fadeIn(0.5f)));
+                    }
+                } else {
+                    for (Box box : levelBoxes) box.remove();
+                    levelBoxes.clear();
+
+                    levelBoxes.addAll(generateBoxes(5, null));
+                    for (Box box : levelBoxes) {
+                        stage.addActor(box);
+                        box.addAction(Actions.sequence(Actions.alpha(0), Actions.delay(0.5f), Actions.fadeIn(0.5f)));
                     }
                 }
-
-                candidateBoxes.addAll(generateBoxes(5, colors));
-                for (Box candidateBox : candidateBoxes) {
-                    stage.addActor(candidateBox);
-                    candidateBox.addAction(Actions.sequence(Actions.alpha(0), Actions.delay(0.5f), Actions.fadeIn(0.5f)));
-                }
-            } else {
-                for (Box box : levelBoxes) box.remove();
-                levelBoxes.clear();
-
-                levelBoxes.addAll(generateBoxes(5, null));
-                for (Box box : levelBoxes) {
-                    stage.addActor(box);
-                    box.addAction(Actions.sequence(Actions.alpha(0), Actions.delay(0.5f), Actions.fadeIn(0.5f)));
-                }
+                currentLevel = (currentLevel + 1) % (levelBoxes.size + 1);
+                currentSet += (currentLevel == 0) ? 1 : 0;
+                lastScreen = TimeUtils.millis();
             }
-            currentLevel = (currentLevel + 1) % (levelBoxes.size + 1);
-            lastScreen = TimeUtils.millis();
         }
-
+        else{
+            //transitionscreen;
+        }
         stage.act(Gdx.graphics.getDeltaTime());
         stage.draw();
     }
