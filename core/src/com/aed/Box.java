@@ -20,10 +20,12 @@ public class Box extends Actor {
     public static final int SHAPE_WIDTH = 100;
     public static final int SHAPE_HEIGHT = 100;
 
+    private AED game;
     private CustomShapeRenderer renderer;
 
-    public Box(CustomShapeRenderer renderer, final Color color, int x, int y) {
-        this.renderer = renderer;
+    public Box(final AED game, final Color color, int x, int y) {
+        this.game = game;
+        this.renderer = game.getRenderer();
 
         super.setColor(color);
 
@@ -44,6 +46,7 @@ public class Box extends Actor {
                         Actions.parallel(Actions.scaleTo(1.2f, 1.2f, 0.05f), Actions.rotateBy(-10f, 0.05f, Interpolation.bounce)),
                         Actions.parallel(Actions.scaleTo(1f, 1f, 0.05f), Actions.rotateBy(10f, 0.05f, Interpolation.bounce))
                 ));
+                game.setSelectedBox(Box.this);
                 return super.touchDown(event, x, y, pointer, button);
             }
         });
@@ -59,8 +62,7 @@ public class Box extends Actor {
         renderer.setColor(getColor());
         renderer.begin(ShapeRenderer.ShapeType.Filled);
         renderer.rect(getX(), getY(), getOriginX(), getOriginY(), getWidth(), getHeight(), getScaleX(), getScaleY(), getRotation());
-//        renderer.roundedRect(getX(), getY(), getWidth(), getHeight(), getScaleX(), getScaleY(), getRotation(), 10, getColor());
-
+        //renderer.roundedRect(getX(), getY(), getOriginX(), getOriginY(), getWidth(), getHeight(), getScaleX(), getScaleY(), getRotation(), getHeight()/4);
         renderer.end();
         Gdx.gl.glDisable(GL20.GL_BLEND);
     }
